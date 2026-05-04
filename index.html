@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pictionary Ultra - Hidden Mode</title>
+    <title>Pictionary</title>
     <style>
         :root {
             --primary-color: #4a90e2;
@@ -43,8 +43,8 @@
             min-height: 100px;
         }
 
-        #category-display { font-size: 14px; color: #666; margin-bottom: 5px; text-transform: uppercase; }
-        #word-display { font-size: 28px; font-weight: bold; color: var(--primary-color); letter-spacing: 3px; }
+        #category-display { font-size: 14px; color: #666; margin-bottom: 5px; text-transform: uppercase; font-weight: bold; }
+        #word-display { font-size: 32px; font-weight: bold; color: var(--primary-color); min-height: 40px; }
 
         .toolbar {
             display: flex;
@@ -78,6 +78,8 @@
             border: 4px solid #ddd;
         }
 
+        canvas { display: block; border-radius: 11px; }
+
         #brush-cursor {
             position: fixed;
             pointer-events: none;
@@ -99,8 +101,8 @@
             <button class="btn btn-reveal" id="reveal-word">REVEAL WORD</button>
         </div>
         <div class="status-card">
-            <div id="category-display">Select a word to begin</div>
-            <div id="word-display">_ _ _ _ _</div>
+            <div id="category-display">Click "New Word" to Start</div>
+            <div id="word-display"></div>
         </div>
     </div>
 
@@ -134,37 +136,38 @@
         let currentTool = 'pen';
         let secretWord = "";
 
+        // --- DRAWER'S REFERENCE KEY ---
         const gameData = {
-    "MOVIES": [
-        /* 0 */ "Jurassic Park", /* 1 */ "Finding Nemo", /* 2 */ "Jaws", 
-        /* 3 */ "The Lion King", /* 4 */ "Star Wars",    /* 5 */ "The Matrix", 
-        /* 6 */ "Harry Potter",  /* 7 */ "Frozen",       /* 8 */ "Spider Man", 
-        /* 9 */ "Home Alone",    /* 10 */ "Ghostbusters",/* 11 */ "The Avengers", 
-        /* 12 */ "Avatar",       /* 13 */ "Shrek",       /* 14 */ "Batman"
-    ],
-    "ANIMALS": [
-        /* 0 */ "Elephant",  /* 1 */ "Giraffe",    /* 2 */ "Penguin", 
-        /* 3 */ "Octopus",   /* 4 */ "Kangaroo",   /* 5 */ "Shark", 
-        /* 6 */ "Chameleon", /* 7 */ "Flamingo",   /* 8 */ "Platypus", 
-        /* 9 */ "Lion",      /* 10 */ "Zebra",     /* 11 */ "Dolphin", 
-        /* 12 */ "Hedgehog", /* 13 */ "Scorpion",  /* 14 */ "Butterfly", 
-        /* 15 */ "Peacock",  /* 16 */ "Gorilla",   /* 17 */ "Owl"
-    ],
-    "FAMOUS PEOPLE": [
-        /* 0 */ "Albert Einstein",  /* 1 */ "Marilyn Monroe",  /* 2 */ "Darth Vader", 
-        /* 3 */ "Sherlock Holmes",  /* 4 */ "Mickey Mouse",    /* 5 */ "Elvis Presley", 
-        /* 6 */ "Abraham Lincoln",  /* 7 */ "Cleopatra",       /* 8 */ "William Shakespeare", 
-        /* 9 */ "Taylor Swift",     /* 10 */ "Cristiano Ronaldo", /* 11 */ "Beyonce",
-        /* 12 */ "Leonardo da Vinci",/* 13 */ "Marie Curie",   /* 14 */ "Charlie Chaplin"
-    ],
-    "LANDMARKS": [
-        /* 0 */ "Eiffel Tower",      /* 1 */ "Statue of Liberty", /* 2 */ "Great Wall of China", 
-        /* 3 */ "Pyramids of Giza",  /* 4 */ "Stonehenge",        /* 5 */ "Leaning Tower of Pisa", 
-        /* 6 */ "Sydney Opera House",/* 7 */ "Taj Mahal",         /* 8 */ "Big Ben", 
-        /* 9 */ "Colosseum",         /* 10 */ "Golden Gate Bridge",/* 11 */ "Mount Rushmore", 
-        /* 12 */ "Empire State Building"
-    ]
-};
+            "MOVIES": [
+                /* 0 */ "Jurassic Park", /* 1 */ "Finding Nemo", /* 2 */ "Jaws", 
+                /* 3 */ "The Lion King", /* 4 */ "Star Wars",    /* 5 */ "The Matrix", 
+                /* 6 */ "Harry Potter",  /* 7 */ "Frozen",       /* 8 */ "Spider Man", 
+                /* 9 */ "Home Alone",    /* 10 */ "Ghostbusters",/* 11 */ "The Avengers", 
+                /* 12 */ "Avatar",       /* 13 */ "Shrek",       /* 14 */ "Batman"
+            ],
+            "ANIMALS": [
+                /* 0 */ "Elephant",  /* 1 */ "Giraffe",    /* 2 */ "Penguin", 
+                /* 3 */ "Octopus",   /* 4 */ "Kangaroo",   /* 5 */ "Shark", 
+                /* 6 */ "Chameleon", /* 7 */ "Flamingo",   /* 8 */ "Platypus", 
+                /* 9 */ "Lion",      /* 10 */ "Zebra",     /* 11 */ "Dolphin", 
+                /* 12 */ "Hedgehog", /* 13 */ "Scorpion",  /* 14 */ "Butterfly", 
+                /* 15 */ "Peacock",  /* 16 */ "Gorilla",   /* 17 */ "Owl"
+            ],
+            "FAMOUS PEOPLE": [
+                /* 0 */ "Albert Einstein",  /* 1 */ "Marilyn Monroe",  /* 2 */ "Darth Vader", 
+                /* 3 */ "Sherlock Holmes",  /* 4 */ "Mickey Mouse",    /* 5 */ "Elvis Presley", 
+                /* 6 */ "Abraham Lincoln",  /* 7 */ "Cleopatra",       /* 8 */ "William Shakespeare", 
+                /* 9 */ "Taylor Swift",     /* 10 */ "Cristiano Ronaldo", /* 11 */ "Beyonce",
+                /* 12 */ "Leonardo da Vinci",/* 13 */ "Marie Curie",   /* 14 */ "Charlie Chaplin"
+            ],
+            "LANDMARKS": [
+                /* 0 */ "Eiffel Tower",      /* 1 */ "Statue of Liberty", /* 2 */ "Great Wall of China", 
+                /* 3 */ "Pyramids of Giza",  /* 4 */ "Stonehenge",        /* 5 */ "Leaning Tower of Pisa", 
+                /* 6 */ "Sydney Opera House",/* 7 */ "Taj Mahal",         /* 8 */ "Big Ben", 
+                /* 9 */ "Colosseum",         /* 10 */ "Golden Gate Bridge",/* 11 */ "Mount Rushmore", 
+                /* 12 */ "Empire State Building"
+            ]
+        };
 
         // UI Setup - Palette
         const colors = ['#000000', '#ffffff', '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6', '#795548', '#95a5a6'];
@@ -191,38 +194,27 @@
             };
         });
 
-        // Word Logic
-        function generateBlanks(word) {
-            return word.split('').map(char => {
-                if (char === ' ') return '&nbsp;&nbsp;';
-                return '_';
-            }).join(' ');
-        }
-
+        // Start New Round
         document.getElementById('start-game').onclick = () => {
             const cats = Object.keys(gameData);
             const catName = cats[Math.floor(Math.random() * cats.length)];
-            const categoryList = gameData[catName];
+            const list = gameData[catName];
+            const index = Math.floor(Math.random() * list.length);
             
-            // Pick a random index
-            const wordIndex = Math.floor(Math.random() * categoryList.length);
-            secretWord = categoryList[wordIndex];
+            secretWord = list[index];
             
-            // Display Category + The ID Number for the drawer
-            categoryEl.innerHTML = `CATEGORY: <b>${catName}</b> (Word ID: #${wordIndex})`;
-            
-            // Show blanks for the guessers
-            wordEl.innerHTML = generateBlanks(secretWord);
-            
-            // Auto-clear canvas for the new turn
-            ctx.clearRect(0,0,canvas.width,canvas.height);
+            // Clear previous word and update headers
+            wordEl.innerText = ""; 
+            categoryEl.innerHTML = `CATEGORY: ${catName} (Word ID: #${index})`;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         };
 
+        // Reveal Secret Word
         document.getElementById('reveal-word').onclick = () => {
             if(secretWord) wordEl.innerText = secretWord;
         };
 
-        // Flood Fill & Drawing (Internal Logic remains from previous version)
+        // --- Drawing & Fill Logic ---
         function hexToRgb(hex) {
             const int = parseInt(hex.slice(1), 16);
             return [(int >> 16) & 255, (int >> 8) & 255, int & 255, 255];
